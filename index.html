@@ -264,14 +264,21 @@ function hideError(){$('errorBox').style.display='none';}
 
 // ── CORS-safe fetch ───────────────────────────────────────
 async function bybitFetch(url) {
+  const bust = `&_=${Date.now()}`;
+  const fresh = url + bust;
   const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url
+    `https://corsproxy.io/?${encodeURIComponent(fresh)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(fresh)}`,
+    `https://thingproxy.freeboard.io/fetch/${fresh}`,
+    fresh
   ];
   for (const u of proxies) {
     try {
-      const r = await fetch(u, {signal: AbortSignal.timeout(9000)});
+      const r = await fetch(u, {
+        signal: AbortSignal.timeout(9000),
+        cache: 'no-store',
+        headers: {'Cache-Control': 'no-cache'}
+      });
       const t = await r.text();
       const d = JSON.parse(t);
       if (d && (d.retCode === 0 || d.result)) return d;
