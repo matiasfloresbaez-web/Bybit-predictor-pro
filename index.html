@@ -161,6 +161,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .install-text strong{color:var(--orange);}
 .btn-install{height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--orange);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;}
 .disclaimer{font-size:10px;color:var(--text3);text-align:center;padding:14px 8px 0;line-height:1.6;}
+.auto-bar{display:flex;align-items:center;gap:10px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;}
+.auto-toggle{width:38px;height:22px;border-radius:11px;background:var(--bg4);border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;}
+.auto-toggle.on{background:var(--orange);}
+.auto-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:3px;left:3px;transition:transform 0.2s;}
+.auto-toggle.on::after{transform:translateX(16px);}
+.auto-label{font-size:12px;color:var(--text2);flex:1;}
+.auto-label strong{color:var(--text);}
+.auto-countdown{font-size:13px;font-weight:600;color:var(--orange);min-width:28px;text-align:right;}
+.auto-prog{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden;}
+.auto-prog-fill{height:100%;background:var(--orange);border-radius:2px;transition:width 1s linear;}
 @media(max-width:400px){.sltp-grid{grid-template-columns:1fr;}.sl-col{border-right:none;border-bottom:0.5px solid var(--border);}.tp-levels{grid-template-columns:1fr;}.tp-level+.tp-level{border-left:none;border-top:0.5px solid var(--border);}}
 @media(max-width:380px){.charts-row{grid-template-columns:1fr;}.indicators-grid{grid-template-columns:1fr;}.support-resist{grid-template-columns:1fr;}.price-row{grid-template-columns:repeat(2,1fr);}}
 </style>
@@ -225,6 +235,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     </div>
   </div>
 
+  <div class="auto-bar" id="autoBar">
+    <button class="auto-toggle" id="autoToggle" onclick="toggleAuto()" aria-label="Auto actualizar"></button>
+    <div style="flex:1;">
+      <div class="auto-label"><strong>Auto-actualizar</strong> cada 15 seg</div>
+      <div class="auto-prog"><div class="auto-prog-fill" id="autoProgFill" style="width:100%"></div></div>
+    </div>
+    <div class="auto-countdown" id="autoCountdown">—</div>
+  </div>
   <div class="error-box" id="errorBox"></div>
   <div id="content"></div>
   <div class="disclaimer">⚠️ Solo con fines educativos — No es asesoría financiera.<br>Opera siempre con gestión de riesgo. Los niveles son tentativos.</div>
@@ -567,6 +585,52 @@ async function analyze(){
   }
 }
 $('pairInput').addEventListener('keydown',e=>{if(e.key==='Enter')analyze();});
+
+// ── Auto-refresh ──────────────────────────────────────────
+let autoOn = false;
+let autoTimer = null;
+let countTimer = null;
+let secondsLeft = 15;
+
+function toggleAuto() {
+  autoOn = !autoOn;
+  const btn = $('autoToggle');
+  const cd = $('autoCountdown');
+  btn.classList.toggle('on', autoOn);
+  if (autoOn) {
+    startCountdown();
+  } else {
+    clearInterval(autoTimer);
+    clearInterval(countTimer);
+    autoTimer = null;
+    countTimer = null;
+    cd.textContent = '—';
+    $('autoProgFill').style.width = '100%';
+  }
+}
+
+function startCountdown() {
+  clearInterval(autoTimer);
+  clearInterval(countTimer);
+  secondsLeft = 15;
+  $('autoCountdown').textContent = secondsLeft + 's';
+  $('autoProgFill').style.width = '100%';
+
+  countTimer = setInterval(() => {
+    secondsLeft--;
+    $('autoCountdown').textContent = secondsLeft + 's';
+    $('autoProgFill').style.width = ((secondsLeft / 15) * 100) + '%';
+    if (secondsLeft <= 0) {
+      clearInterval(countTimer);
+    }
+  }, 1000);
+
+  autoTimer = setTimeout(async () => {
+    if (!autoOn) return;
+    await analyze();
+    if (autoOn) startCountdown();
+  }, 15000);
+}
 </script>
 </body>
 </html>
